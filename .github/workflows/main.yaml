@@ -96,7 +96,7 @@ jobs:
       
       - name: Pull latest images
         run: |
-          docker pull 905418118587.dkr.ecr.us-east-1.amazonaws.com/ai-stock-advisor:latest
+          docker pull ${{ secrets.AWS_ECR_LOGIN_URI }}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
          
       #- name: Stop and remove  container if running
        # run: |
