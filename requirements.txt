@@ -10,3 +10,4 @@ transformers
 streamlit
 plotly
 scikit-learn
+tf-keras
