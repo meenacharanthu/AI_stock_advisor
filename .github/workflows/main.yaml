@@ -64,3 +64,48 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+
+  Continuous-Deployment:
+    needs: build-and-push-ecr-image
+    runs-on: self-hosted          # APP-runner continuosly listening for changes or commits in the github repo
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Show disk usage before deployment
+        run: df -h && docker system df
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Login to Amazon ECR
+        id: login-ecr
+        uses: aws-actions/amazon-ecr-login@v1
+      
+      - name: Clean all Docker stuff aggressively
+        run: |
+          docker rm -f $(docker ps -aq) || true
+          docker rmi -f $(docker images -aq) || true
+          docker volume prune -f || true
+          docker builder prune -af || true
+          docker system prune -af || true
+      
+      - name: Pull latest images
+        run: |
+          docker pull 905418118587.dkr.ecr.us-east-1.amazonaws.com/ai-stock-advisor:latest
+         
+      #- name: Stop and remove  container if running
+       # run: |
+        # docker ps -q --filter "name=networksecurity" | grep -q . && docker stop networksecurity && docker rm -fv networksecurity
+       
+      - name: Run Docker Image to serve users
+        run: |
+         docker run -d -p 8080:8080 --ipc="host" --name=network-security -e 'AWS_ACCESS_KEY_ID=${{ secrets.AWS_ACCESS_KEY_ID }}' -e 'AWS_SECRET_ACCESS_KEY=${{ secrets.AWS_SECRET_ACCESS_KEY }}' -e 'AWS_REGION=${{ secrets.AWS_REGION }}'  ${{secrets.AWS_ECR_LOGIN_URI}}/${{ secrets.ECR_REPOSITORY_NAME }}:latest
+      
+      - name: Clean previous images and containers
+        run: |
+         docker system prune -f
