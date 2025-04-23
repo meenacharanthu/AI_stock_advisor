@@ -1,0 +1,12 @@
+yfinance
+lxml[html_clean] 
+newspaper3k 
+feedparser 
+bs4
+pandas
+numpy
+tensorflow
+transformers
+streamlit
+plotly
+scikit-learn

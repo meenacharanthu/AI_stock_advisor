@@ -95,12 +95,19 @@ if enable_analyze:
 
                 status_box.info(f"🧠 [{sym}] Generating sentiment summaries...")
                 counts = news['sentiment_label'].value_counts().to_dict()
+
+
+                positive_corpus = ' '.join([row[1]['content'][:1024] for row in news.iterrows() if row[1]['sentiment_label'] == 'positive'])
+                negative_corpus = ' '.join([row[1]['content'][:1024] for row in news.iterrows() if row[1]['sentiment_label'] == 'negative'])
+                neutral_corpus = ' '.join([row[1]['content'][:1024] for row in news.iterrows() if row[1]['sentiment_label'] == 'neutral'])
+
+
                 summaries = {
-                    lbl: generate_finance_summary(
-                        news[news.sentiment_label == lbl]['content'].str.cat(sep='. '),
-                        lbl
-                    ) for lbl in ['positive', 'negative', 'neutral']
+                    'positive': generate_finance_summary(positive_corpus, 'positive'),
+                    'negative': generate_finance_summary(negative_corpus, 'negative'),
+                    'neutral': generate_finance_summary(neutral_corpus, 'neutral')
                 }
+
 
                 status_box.info(f"🤖 [{sym}] Generating final recommendation...")
                 rec_df = recommend(
@@ -152,26 +159,35 @@ with tab1:
 
             with st.expander("📈 Recommendation", expanded=True):
                 reco = rec.get('Recommendation', 'Hold')
+                
                 color = "green" if reco in ["Buy", "Accumulate"] else "red" if "Sell" in reco else "blue"
                 st.markdown(f"### <span style='color:{color}'>{reco}</span>", unsafe_allow_html=True)
+                st.markdown(f"**Rationale:** {rec.get('Reasoning', 'Neutral market conditions')}")
 
                 if reco in ["Buy", "Accumulate"]:
+                    st.markdown("##### News Summary:")
                     st.write(analysis['summaries']['positive'])
                 elif "Sell" in reco:
+                    st.markdown("##### News Summary:")
                     st.write(analysis['summaries']['negative'])
                 else:
-                    st.markdown("##### Positive Catalysts:")
-                    st.write(analysis['summaries']['positive'])
-                    st.markdown("##### Negative Briefs:")
-                    st.write(analysis['summaries']['negative'])
+                    # st.markdown("##### Positive Catalysts:")
+                    # st.write(analysis['summaries']['positive'])
+                    # st.markdown("##### Negative Briefs:")
+                    # st.write(analysis['summaries']['negative'])
+                    st.markdown("##### News Summary:")
+                    st.write(analysis['summaries']['neutral'])
 
-                st.markdown(f"**Rationale:** {rec.get('Reasoning', 'Neutral market conditions')}")
+                color = 'green' if rec.get('Forecast Trend')=='Upward' else 'red' if rec.get('Forecast Trend')=='Downward' else 'blue'
+                text = '> 1.5%' if rec.get('Forecast Trend')=='Upward' else '< -1.5%' if rec.get('Forecast Trend')=='Downward' else '(-1.5% to +1.5%)'
+                st.markdown(f"##### <span style='color:{color}'>{rec.get('Forecast Trend')} - {text}</span>", unsafe_allow_html=True)
+
+                
                 rsi_val = rec.get('RSI (14)', None)
                 if rsi_val is not None:
                     progress = (rsi_val - 30) / 40
                     st.progress(progress, text=f"RSI: {rsi_val:.1f} ({progress:.0%} to overbought)")
 
-                st.markdown(f"**Forecast Trend:** {rec.get('Forecast Trend')}")
                 
 
             st.markdown("---")
@@ -208,7 +224,7 @@ with tab1:
 
             # Display news articles
             with st.expander(f"📰 Recent News Articles", expanded=True):
-                news = analysis.get('news', pd.DataFrame()).head(5)
+                news = analysis.get('news', pd.DataFrame()).sort_values(by='softmax_score', ascending=False).head(5)
                 if not news.empty:
                     for _, row in news.iterrows():
                         st.markdown(f"**{row['title']}**")

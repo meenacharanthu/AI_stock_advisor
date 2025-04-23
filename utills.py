@@ -59,7 +59,8 @@ def scrape_google_news(query, max_pages=3):
         start = page * 10
         url = (
             "https://www.google.com/search"
-            f"?q={q}+stock"  # Search term :contentReference[oaicite:1]{index=1}
+            f"?q={q}"  # Search term :contentReference[oaicite:1]{index=1}
+            "&hl=en"                       # Language :contentReference[oaicite:2]{index=2}
             "&tbm=nws"                    # News tab :contentReference[oaicite:4]{index=4}
             "&tbs=qdr:d,sbd:1"            # Past day + sort by date :contentReference[oaicite:5]{index=5}
             f"&start={start}"             # Pagination :contentReference[oaicite:6]{index=6}
