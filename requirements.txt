@@ -5,7 +5,6 @@ feedparser
 bs4
 pandas
 numpy
-tensorflow
 transformers
 streamlit
 plotly
